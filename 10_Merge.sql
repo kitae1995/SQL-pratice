@@ -101,6 +101,9 @@ ROLLBACK;
 
 ----------------------------------------------------------------------------------
 ----------------------------------------------------------------------------------
+
+-- PDF 문제 1~5번
+
 CREATE TABLE DEPTS AS (SELECT * FROM departments);
 
 SELECT * FROM DEPTS;
@@ -133,7 +136,7 @@ WHERE manager_id IS NOT NULL;
 
 MERGE INTO DEPTS a -- (머지를 할 타겟 테이블)
     USING -- 병합시킬 데이터
-        (SELECT * FROM DEPTS) b -- 병합하고자 하는 데이터를 서브쿼리로 표현
+        (SELECT * FROM departments) b -- 병합하고자 하는 데이터를 서브쿼리로 표현
     ON -- 병합시킬 데이터의 연결 조건
         (a.department_id = b.department_id)
 WHEN MATCHED THEN -- 조건이 일치하는 경우에는 타겟 테이블에 이렇게 실행하라.
@@ -142,7 +145,7 @@ WHEN MATCHED THEN -- 조건이 일치하는 경우에는 타겟 테이블에 이렇게 실행하라.
         a.manager_id = b.manager_id,
         a.location_id = b.location_id
             
-WHEN NOT MATCHED THEN
+WHEN NOT MATCHED THEN -- 일치하지 않을시 수정하지않고 그냥 집어넣음
     INSERT /*속성 (컬럼) */ VALUES
     (b.department_id, b.department_name, b.manager_id,
     b.location_id);
@@ -154,3 +157,17 @@ CREATE TABLE jobs_it AS (SELECT * FROM jobs WHERE min_salary > 6000);
 
 INSERT INTO jobs_it(job_id,job_title,min_salary,max_salary)
 VALUES('SEC_DEV','보안개발팀',6000,19000);
+
+MERGE INTO jobs_it a -- (머지를 할 타겟 테이블)
+    USING -- 병합시킬 데이터
+        (SELECT * FROM jobs WHERE min_salary > 5000) b -- 병합하고자 하는 데이터를 서브쿼리로 표현
+    ON -- 병합시킬 데이터의 연결 조건
+        (a.job_id = b.job_id)
+WHEN MATCHED THEN -- 조건이 일치하는 경우에는 타겟 테이블에 이렇게 실행하라.
+    UPDATE SET
+        a.min_salary = b.min_salary,
+        a.max_salary = b.max_salary
+        
+    WHEN NOT MATCHED THEN
+    INSERT /*속성 (컬럼) */ VALUES
+    (b.job_id, b.job_title,b.min_salary,b.max_salary);
