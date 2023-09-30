@@ -165,6 +165,16 @@ locations테이블 countries 테이블을 left 조인하세요
 조건) country_name기준 오름차순 정렬
 */
 SELECT
+loc.location_id,
+loc.street_address,
+loc.city,
+c.country_id,
+c.country_name
+FROM locations loc LEFT JOIN countries c
+ON loc.country_id = c.country_id
+ORDER BY c.country_name ASC;
+
+SELECT
 l.location_id,
 l.street_address,
 l.city,
@@ -178,6 +188,17 @@ ORDER BY country_name ASC;
 문제 11.
 문제 10의 결과를 (스칼라 쿼리)로 동일하게 조회하세요
 */
+SELECT
+l.location_id,
+l.street_address,
+l.city,
+(SELECT c.country_id FROM countries c
+WHERE l.country_id = c.country_id) AS country_id,
+(SELECT c.country_name FROM countries c
+WHERE l.country_id = c.country_id) AS country_name
+FROM locations l
+ORDER BY country_name ASC;
+
 SELECT 
 loc.location_id,
 loc.street_address,
@@ -241,6 +262,15 @@ ORDER BY hire_date ASC;
 --EMPLOYEES 와 DEPARTMENTS 테이블에서 JOB_ID가 SA_MAN 사원의 정보의 LAST_NAME, JOB_ID, 
 DEPARTMENT_ID,DEPARTMENT_NAME을 출력하세요.
 */
+SELECT 
+e.last_name,
+e.job_id,
+e.department_id,
+d.department_name
+FROM employees e INNER JOIN departments d
+ON e.department_id = d.department_id
+WHERE e.job_id = 'SA_MAN';
+
 SELECT
 e.last_name,
 e.job_id,
@@ -256,12 +286,33 @@ WHERE e.job_id = 'SA_MAN';
 --사람이 없는 부서는 출력하지 뽑지 않습니다.
 */
 SELECT
+*
+FROM
+(SELECT
 d.department_id,
-count(*)
-FROM departments d LEFT JOIN employees e
-ON d.department_id = e.department_id
-GROUP BY d.department_id;
+d.department_name,
+d.manager_id,
+(SELECT count(*) FROM employees e WHERE e.department_id = d.department_id
+GROUP BY d.department_id) AS 인원수
+FROM departments d)
+WHERE 인원수 IS NOT NULL
+ORDER BY 인원수 desc;
 
+SELECT
+*
+FROM (
+SELECT
+department_id,
+department_name,
+manager_id,
+(SELECT 
+  count(*) 
+FROM employees e
+WHERE d.department_id = e.department_id
+GROUP BY department_id) AS 인원수
+FROM departments d)
+WHERE 인원수 IS NOT NULL
+ORDER BY 인원수 DESC;
 
 
 /*
@@ -269,9 +320,74 @@ GROUP BY d.department_id;
 --부서에 대한 정보 전부와, 주소, 우편번호, 부서별 평균 연봉을 구해서 출력하세요.
 --부서별 평균이 없으면 0으로 출력하세요.
 */
+SELECT 
+*
+FROM
+(SELECT
+d.*,
+(SELECT street_address FROM locations loc WHERE d.location_id = loc.location_id),
+(SELECT postal_code FROM locations loc WHERE d.location_id = loc.location_id),
+(SELECT TRUNC(AVG(salary)) FROM employees e WHERE d.department_id = e.department_id
+GROUP BY d.department_id) AS 평균연봉
+FROM departments d)
+WHERE 평균연봉 IS NOT NULL;
+
+
+
+
+SELECT
+*
+FROM(
+SELECT d.* ,
+(SELECT street_address FROM locations loc WHERE d.location_id = loc.location_id) AS 주소,
+(SELECT POSTAL_CODE FROM locations loc WHERE d.location_id = loc.location_id) AS 우편번호,
+(SELECT NVL(TRUNC(AVG(SALARY)),0) FROM employees e WHERE d.department_id = e.department_id
+GROUP BY d.department_id) AS 평균연봉
+FROM departments d);
 
 /*
 문제 16
 -문제 15 결과에 대해 DEPARTMENT_ID기준으로 내림차순 정렬해서 
 ROWNUM을 붙여 1-10 데이터 까지만 출력하세요.
 */
+SELECT
+*
+FROM
+(SELECT
+ROWNUM rn,
+tbl.*
+FROM
+(SELECT
+d.*,
+(SELECT street_address FROM locations loc WHERE d.location_id = loc.location_id),
+(SELECT postal_code FROM locations loc WHERE d.location_id = loc.location_id),
+(SELECT TRUNC(AVG(salary)) FROM employees e WHERE d.department_id = e.department_id
+GROUP BY d.department_id) AS 평균연봉
+FROM departments d ORDER BY department_id DESC) tbl
+WHERE 평균연봉 IS NOT NULL)
+WHERE rn > 0 AND rn < 11 ;
+
+
+
+
+
+
+
+
+
+
+
+
+SELECT
+tbl.*
+FROM(
+SELECT ROWNUM rn,d.* ,
+(SELECT street_address FROM locations loc WHERE d.location_id = loc.location_id) AS 주소,
+(SELECT POSTAL_CODE FROM locations loc WHERE d.location_id = loc.location_id) AS 우편번호,
+(SELECT NVL(TRUNC(AVG(SALARY)),0) FROM employees e WHERE d.department_id = e.department_id
+GROUP BY d.department_id) AS 평균연봉
+FROM departments d
+ORDER BY d.department_id DESC) tbl
+WHERE rn > 0 AND rn < 11;
+
+
