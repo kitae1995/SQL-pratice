@@ -286,6 +286,22 @@ WHERE e.job_id = 'SA_MAN';
 --»ç¶÷ÀÌ ¾ø´Â ºÎ¼­´Â Ãâ·ÂÇÏÁö »ÌÁö ¾Ê½À´Ï´Ù.
 */
 SELECT
+    d.department_id, d.department_name, d.manager_id,
+    a.total
+FROM departments d
+JOIN
+(
+SELECT
+department_id,count(*) AS total
+FROM employees
+GROUP BY department_id
+)a
+ON d.department_id = a.department_id
+ORDER BY a.total desc;
+
+-------------------------------------------------------------
+
+SELECT
 *
 FROM
 (SELECT
@@ -341,8 +357,8 @@ FROM(
 SELECT d.* ,
 (SELECT street_address FROM locations loc WHERE d.location_id = loc.location_id) AS ÁÖ¼Ò,
 (SELECT POSTAL_CODE FROM locations loc WHERE d.location_id = loc.location_id) AS ¿ìÆí¹øÈ£,
-(SELECT NVL(TRUNC(AVG(SALARY)),0) FROM employees e WHERE d.department_id = e.department_id
-GROUP BY d.department_id) AS Æò±Õ¿¬ºÀ
+NVL((SELECT TRUNC(AVG(SALARY)) FROM employees e WHERE d.department_id = e.department_id
+GROUP BY d.department_id),0) AS Æò±Õ¿¬ºÀ
 FROM departments d);
 
 /*
@@ -389,5 +405,32 @@ GROUP BY d.department_id) AS Æò±Õ¿¬ºÀ
 FROM departments d
 ORDER BY d.department_id DESC) tbl
 WHERE rn > 0 AND rn < 11;
+
+-------------------------------------------------------------------------------------------
+
+SELECT * FROM
+    (
+    SELECT ROWNUM AS rn, tbl2.*
+        FROM
+        (
+        SELECT
+            d.*,
+            loc.street_address, loc.postal_code,
+            NVL(tbl.result, 0) AS ºÎ¼­º°Æò±Õ±Þ¿©
+        FROM departments d
+        JOIN locations loc
+        ON d.location_id = loc.location_id
+        LEFT JOIN
+            (
+            SELECT
+                department_id,
+                TRUNC(AVG(salary), 0) AS result
+            FROM employees
+            GROUP BY department_id
+            ) tbl
+        ON d.department_id = tbl.department_id
+        ) tbl2
+    )
+WHERE rn > 0 AND rn <= 10;
 
 
