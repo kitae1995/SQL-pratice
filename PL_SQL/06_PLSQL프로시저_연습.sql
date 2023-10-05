@@ -1,3 +1,4 @@
+SET SERVEROUTPUT ON;
 /*
 프로시저명 divisor_proc
 숫자 하나를 전달받아 해당 값의 약수의 개수를 출력하는 프로시저를 선언합니다.
@@ -75,6 +76,34 @@ employee_id를 입력받아 employees에 존재하면,
 없다면 exception처리하세요
 */
 
+CREATE OR REPLACE procedure emp_hire_proc
+    (
+      p_employee_id IN employees.employee_id%TYPE,
+      p_year OUT NUMBER
+    )
+IS
+    v_hire_date employees.hire_date%TYPE;
+BEGIN
+    SELECT
+        hire_date
+        INTO
+        v_hire_date
+    FROM employees
+    WHERE employee_id = p_employee_id;
+    
+    p_year := TRUNC((sysdate - v_hire_date)/365);
+    
+    EXCEPTION WHEN OTHERS THEN
+        dbms_output.put_line(p_employee_id || '은 없는 데이터 입니다');
+     
+END;
+
+DECLARE
+    v_year NUMBER;
+BEGIN
+    emp_hire_proc(105,v_year);
+    dbms_output.put_line(v_year || '년');    
+END;
 
 /*
 프로시저명 - new_emp_proc
@@ -87,3 +116,35 @@ employee_id, last_name, email, hire_date, job_id를 입력받아
 병합시킬 데이터 -> 프로시저로 전달받은 employee_id를 dual에 select 때려서 비교.
 프로시저가 전달받아야 할 값: 사번, last_name, email, hire_date, job_id
 */
+
+CREATE OR REPLACE procedure new_emp_proc
+    (p_employee_id IN emps.employee_id%TYPE,
+     p_last_name IN emps.last_name%TYPE,
+     p_email IN emps.email%TYPE,
+     p_hire_date IN emps.hire_date%TYPE,
+     p_job_id IN emps.job_id%TYPE
+    )
+IS
+
+BEGIN
+    MERGE INTO emps a -- 머지를 할 타겟 테이블
+    USING
+        (SELECT p_employee_id AS employee_id
+         FROM dual) b
+    ON
+        (a.employee_id = b.employee_id) -- 최종적으로는? 전달받은 사번이 emps에 존재하는지?
+    
+    WHEN MATCHED THEN
+        UPDATE SET
+            a.last_name = p_last_name,
+            a.email = p_email,
+            a.hire_date = p_hire_date,
+            a.job_id = p_job_id
+    WHEN NOT MATCHED THEN
+        INSERT (a.employee_id,a.last_name,a.email,a.hire_date,a.job_id)
+        VALUES (p_employee_id,p_last_name,p_email,p_hire_date,p_job_id);
+END;
+
+SELECT * FROM emps;
+
+EXEC new_emp_proc(300,'bak','park4321',sysdate,'test');
